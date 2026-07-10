@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# scratch / debug artifacts (Playwright 스크린샷 스크립트·이미지 등)
+_*.mjs
+_*.png
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
