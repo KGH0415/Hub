@@ -25,6 +25,8 @@ export default function Snack() {
   const [editing, setEditing] = useState(false)
   const [editStore, setEditStore] = useState('')
   const [editDeadline, setEditDeadline] = useState('21:00')
+  const [openKakao, setOpenKakao] = useState(false)
+  const [editKakao, setEditKakao] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const closeT = useRef(null)
 
@@ -62,14 +64,16 @@ export default function Snack() {
       notify('⏰ 마감시간이 이미 지났어요 — 미래 시간으로 선택해 주세요')
       return
     }
-    save({ date: todayKey, store, deadline: dl, opener: myName, orders: [] })
+    save({ date: todayKey, store, deadline: dl, opener: myName, checkKakao: openKakao, orders: [] })
     setStoreInput('')
+    setOpenKakao(false)
   }
 
   const startEdit = () => {
     setEditing(true)
     setEditStore(session.store)
     setEditDeadline(session.deadline)
+    setEditKakao(!!session.checkKakao)
   }
   const saveEdit = () => {
     const store = editStore.trim()
@@ -84,7 +88,7 @@ export default function Snack() {
       notify('⏰ 마감시간이 이미 지났어요 — 미래 시간으로 선택해 주세요')
       return
     }
-    save({ ...session, store, deadline: dl })
+    save({ ...session, store, deadline: dl, checkKakao: editKakao })
     setEditing(false)
     notify('주문 정보를 수정했어요')
   }
@@ -112,9 +116,11 @@ export default function Snack() {
   const removeOrder = (id) => save({ ...session, orders: orders.filter((q) => q.id !== id) })
 
   const copySnacks = () => {
+    const lines = orders.filter((o) => o.menu.trim()).map((o) => '- ' + o.who + ': ' + o.menu + (o.note ? ' (' + o.note + ')' : ''))
     const text =
-      '🌙 야식 주문 — ' + session.store + ' (' + session.deadline + ' 마감)\n' +
-      orders.filter((o) => o.menu.trim()).map((o) => '- ' + o.who + ': ' + o.menu + (o.note ? ' (' + o.note + ')' : '')).join('\n')
+      '🌙 야식 주문 — ' + session.store + ' (' + session.deadline + ' 마감)' +
+      (session.checkKakao ? '\n💬 카톡을 확인해주세요' : '') +
+      (lines.length ? '\n' + lines.join('\n') : '')
     try {
       navigator.clipboard.writeText(text)
       notify('주문 목록을 복사했어요 — 채팅에 붙여넣으세요')
@@ -160,6 +166,10 @@ export default function Snack() {
               주문 열기
             </HoverButton>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: openKakao ? '#8A6D1E' : '#737E92', cursor: 'pointer' }}>
+            <input type="checkbox" checked={openKakao} onChange={(e) => setOpenKakao(e.target.checked)} style={{ width: '17px', height: '17px', accentColor: '#F7B500', cursor: 'pointer', margin: 0 }} />
+            💬 “카톡을 확인해주세요” 안내 표시 — 메뉴는 카톡으로 받을게요
+          </label>
         </div>
       )}
 
@@ -173,7 +183,10 @@ export default function Snack() {
               <div style={{ fontSize: '12.5px', color: '#98A0B3' }}>{session.opener}님이 열었어요 · 주문 {orders.length}건</div>
             </div>
             <span style={{ fontSize: '12.5px', fontWeight: 800, padding: '6px 14px', borderRadius: '999px', background: closed ? '#F1F3F7' : '#DDF5EA', color: closed ? '#98A0B3' : '#1F8A5B' }}>{deadlineLabel}</span>
-            {orders.length > 0 && (
+            {session.checkKakao && (
+              <span style={{ fontSize: '12.5px', fontWeight: 800, padding: '6px 14px', borderRadius: '999px', background: '#FADE2D', color: '#3C2E1E' }}>💬 카톡을 확인해주세요</span>
+            )}
+            {(orders.length > 0 || session.checkKakao) && (
               <HoverButton onClick={copySnacks} style={{ fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, color: '#5560A4', background: '#E8EAF8', border: 'none', padding: '8px 16px', borderRadius: '999px', cursor: 'pointer', transition: 'transform .15s' }} hoverStyle={{ transform: 'scale(1.04)' }}>📋 주문 복사</HoverButton>
             )}
             <HoverButton onClick={startEdit} style={{ fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, color: '#737E92', background: '#F1F3F7', border: 'none', padding: '8px 16px', borderRadius: '999px', cursor: 'pointer', transition: 'all .15s' }} hoverStyle={{ color: '#5560A4', background: '#E8EAF8' }}>✎ 수정</HoverButton>
@@ -188,6 +201,10 @@ export default function Snack() {
                 <span style={{ fontSize: '13px', fontWeight: 700, color: '#737E92' }}>마감</span>
                 <input type="time" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} style={{ border: '1.5px solid #E7EAF3', borderRadius: '12px', outline: 'none', fontFamily: 'inherit', fontSize: '14px', padding: '9px 12px', color: '#232B3A' }} />
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: 700, color: editKakao ? '#8A6D1E' : '#737E92', cursor: 'pointer' }}>
+                <input type="checkbox" checked={editKakao} onChange={(e) => setEditKakao(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#F7B500', cursor: 'pointer', margin: 0 }} />
+                💬 카톡 확인 안내
+              </label>
               <button onClick={saveEdit} style={{ fontFamily: 'inherit', fontSize: '14px', fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg,#6B77BE,#5560A4)', border: 'none', borderRadius: '12px', padding: '10px 24px', cursor: 'pointer', boxShadow: '0 8px 20px rgba(85,96,164,.3)' }}>저장</button>
               <button onClick={() => setEditing(false)} style={{ fontFamily: 'inherit', fontSize: '13.5px', fontWeight: 700, color: '#737E92', background: '#F1F3F7', border: 'none', borderRadius: '12px', padding: '10px 16px', cursor: 'pointer' }}>취소</button>
             </div>

@@ -9,7 +9,8 @@ const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
 // 엑셀(.xlsx·.csv) 업로드 → 시트별 표로 표시. 파일은 브라우저 localStorage에 저장.
 export default function Maintenance() {
   const navigate = useNavigate()
-  const [files, setFiles] = useLocalStorage('sd1-portal-maint', [])
+  const [storedFiles, setFiles] = useLocalStorage('sd1-portal-maint', [])
+  const files = Array.isArray(storedFiles) ? storedFiles : []
   const [active, setActive] = useState(0)
   const [sheetSel, setSheetSel] = useState(0)
   const [error, setError] = useState(null)

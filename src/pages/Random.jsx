@@ -355,7 +355,7 @@ export default function Random() {
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {nameItems.map((value, i) => ({ value, i })).slice(ladderPg * 8, ladderPg * 8 + 8).map(({ value, i }) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', border: '1.5px solid #EAEDF5', borderRadius: '11px', padding: '2px 6px 2px 12px' }}>
                     <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
@@ -379,7 +379,7 @@ export default function Random() {
                 <div style={{ fontSize: '14.5px', fontWeight: 800 }}>결과 <span style={{ fontSize: '12px', fontWeight: 600, color: '#98A0B3' }}>· 비우면 "꽝"</span></div>
                 <HoverButton onClick={() => { setLadderResults(Array(ladderCount).fill('')); setLadderPicked(null) }} style={{ fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, color: '#98A0B3', background: '#F1F3F7', border: 'none', padding: '7px 14px', borderRadius: '999px', cursor: 'pointer', transition: 'all .15s' }} hoverStyle={{ color: '#E05B5B', background: '#FFECEC' }}>↺ 초기화</HoverButton>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {resultItems.map((value, i) => ({ value, i })).slice(ladderPg * 8, ladderPg * 8 + 8).map(({ value, i }) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', border: '1.5px solid #EAEDF5', borderRadius: '11px', padding: '2px 6px 2px 12px' }}>
                     <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />

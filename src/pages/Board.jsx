@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/Toast'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { HoverButton } from '../components/ui'
+import Pager from '../components/Pager'
+import useAutoPage from '../hooks/useAutoPage'
 
 const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
-const PER = 4
 const ANIMALS = [['판다', '🐼'], ['너구리', '🦝'], ['펭귄', '🐧'], ['해달', '🦦'], ['부엉이', '🦉'], ['여우', '🦊'], ['고래', '🐋'], ['다람쥐', '🐿️'], ['문어', '🐙'], ['알파카', '🦙']]
 
 const NOW0 = Date.now()
@@ -31,13 +32,13 @@ function timeLabel(ts) {
 export default function Board() {
   const navigate = useNavigate()
   const notify = useToast()
-  const [posts, setPosts] = useLocalStorage('sd1-portal-board', DEFAULT_POSTS)
+  const [storedPosts, setPosts] = useLocalStorage('sd1-portal-board', DEFAULT_POSTS)
+  const posts = Array.isArray(storedPosts) ? storedPosts : DEFAULT_POSTS
   const [anon] = useLocalStorage('sd1-portal-anon', makeAnon())
   const [boardText, setBoardText] = useState('')
   const [liked, setLiked] = useState({})
   const [editId, setEditId] = useState(null)
   const [editText, setEditText] = useState('')
-  const [page, setPage] = useState(0)
   const [cmtOpen, setCmtOpen] = useState({})
   const [cmtInputs, setCmtInputs] = useState({})
   const [cmtEditId, setCmtEditId] = useState(null)
@@ -51,12 +52,10 @@ export default function Board() {
     if (!text) return
     setPosts([{ id: 'p' + Date.now(), nick: anon.nick, emoji: anon.emoji, text, ts: Date.now(), likes: 0, mine: true }, ...posts])
     setBoardText('')
+    setPage(0)
   }
 
-  const totalPages = Math.max(1, Math.ceil(posts.length / PER))
-  const curPage = Math.min(page, totalPages - 1)
-  const rows = posts.slice(curPage * PER, curPage * PER + PER)
-  const showPager = posts.length > PER
+  const { ref: listRef, pageItems, page, setPage, totalPages } = useAutoPage(posts, 92, { gap: 9, reserved: 80 })
 
   const toggleLike = (p) => {
     const isLiked = !!liked[p.id]
@@ -116,8 +115,8 @@ export default function Board() {
       </div>
 
       {/* 글 목록 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-        {rows.map((p) => {
+      <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+        {pageItems.map((p) => {
           const cmts = Array.isArray(p.comments) ? p.comments : []
           const open = !!cmtOpen[p.id]
           const isEditing = editId === p.id
@@ -223,13 +222,7 @@ export default function Board() {
         )}
       </div>
 
-      {showPager && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginTop: '18px' }}>
-          <HoverButton onClick={() => setPage(Math.max(0, curPage - 1))} disabled={curPage === 0} style={{ fontFamily: 'inherit', width: '38px', height: '38px', border: '1px solid #EAEDF5', borderRadius: '12px', background: '#fff', color: curPage === 0 ? '#D5DAE6' : '#3AA6B9', fontSize: '17px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(35,43,58,.05)', transition: 'all .15s' }} hoverStyle={{ border: '1px solid #BCE4EC' }}>‹</HoverButton>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: '#737E92', minWidth: '44px', textAlign: 'center' }}>{curPage + 1} / {totalPages}</span>
-          <HoverButton onClick={() => setPage(Math.min(totalPages - 1, curPage + 1))} disabled={curPage >= totalPages - 1} style={{ fontFamily: 'inherit', width: '38px', height: '38px', border: '1px solid #EAEDF5', borderRadius: '12px', background: '#fff', color: curPage >= totalPages - 1 ? '#D5DAE6' : '#3AA6B9', fontSize: '17px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(35,43,58,.05)', transition: 'all .15s' }} hoverStyle={{ border: '1px solid #BCE4EC' }}>›</HoverButton>
-        </div>
-      )}
+      <Pager page={page} totalPages={totalPages} onChange={setPage} accent="#3AA6B9" />
     </section>
   )
 }

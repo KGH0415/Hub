@@ -81,7 +81,7 @@ export default function Topbar() {
   const openHr = () => window.open('https://ipeople.ctr.co.kr/', '_blank')
 
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'linear-gradient(90deg,#E8A277 0%,#CE84A8 48%,#8B7BC4 100%)', borderBottom: '1px solid rgba(255,255,255,.3)', boxShadow: '0 6px 24px rgba(124,92,252,.2)' }}>
+    <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'linear-gradient(100deg,#7174D5 0%,#866FD6 50%,#A575D3 100%)', borderBottom: '1px solid rgba(255,255,255,.3)', boxShadow: '0 6px 24px rgba(124,92,252,.2)' }}>
       <div style={{ margin: '0 auto', padding: '13px 44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button
           onClick={() => navigate('/')}

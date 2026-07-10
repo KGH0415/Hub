@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { HoverButton } from '../components/ui'
 import { CAFETERIAS } from './Meal'
+import { TODO_CATEGORIES, categoryOf } from '../data/todoCategories'
 
 const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
 const NOTICE_DEFAULT_TEXT = '이번 주 금요일 17:00 전사 안전교육이 있습니다 · 7/10(금) 월급날입니다 · 사내 포털 개선 의견은 익명 게시판에 남겨주세요'
@@ -103,6 +104,24 @@ function buildCalendar(base, now) {
 
 const glass = { background: 'rgba(255,255,255,.55)', border: '1px solid rgba(255,255,255,.8)', borderRadius: '14px', backdropFilter: 'blur(4px)' }
 
+// 홈은 다른 화면이 소유한 키를 "읽기 전용"으로만 참조한다.
+// (useLocalStorage로 읽으면 마운트 시 기본값이 그 키에 기록돼 소유 화면의 기본값을 덮어쓰는 문제가 있음)
+const readLS = (key) => {
+  try {
+    const s = localStorage.getItem(key)
+    return s == null ? null : JSON.parse(s)
+  } catch {
+    return null
+  }
+}
+const readRaw = (key) => {
+  try {
+    return localStorage.getItem(key) || ''
+  } catch {
+    return ''
+  }
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const { uid, userName } = useAuth()
@@ -112,14 +131,16 @@ export default function Home() {
   const [notices, setNotices] = useLocalStorage('sd1-portal-notices', [{ id: 'n1', text: NOTICE_DEFAULT_TEXT, start: '', end: '', who: '', ts: null }])
   const [memo, setMemo] = useLocalStorage('sd1-portal-memo-' + uid, '', { raw: true })
   const [todos, setTodos] = useLocalStorage('sd1-portal-todos-' + uid, [])
-  const [docs] = useLocalStorage('sd1-portal-docs', null)
-  const [board] = useLocalStorage('sd1-portal-board', null)
-  const [maint] = useLocalStorage('sd1-portal-maint', null)
-  const [gitlabUrl] = useLocalStorage('sd1-portal-gitlabUrl', '', { raw: true })
-  const [snackSession] = useLocalStorage('sd1-portal-snack-session', null)
-  const [syslinks] = useLocalStorage('sd1-portal-syslinks', null)
-  const [menu0] = useLocalStorage('sd1-portal-menu-0', null)
   const [cardOrder, setCardOrder] = useLocalStorage('sd1-portal-cardorder-' + uid, [])
+  // 배지 표시용 — 읽기 전용(홈이 기록하지 않음)
+  const docs = readLS('sd1-portal-docs')
+  const board = readLS('sd1-portal-board')
+  const maint = readLS('sd1-portal-maint')
+  const gitlabUrl = readRaw('sd1-portal-gitlabUrl')
+  const snackSession = readLS('sd1-portal-snack-session')
+  const syslinks = readLS('sd1-portal-syslinks')
+  const menu0 = readLS('sd1-portal-menu-0')
+  const secretNotes = readLS('sd1-portal-secret-notes')
   const dragCard = useRef(null)
 
   const [calOpen, setCalOpen] = useState(false)
@@ -234,11 +255,19 @@ export default function Home() {
   // ===== 카드 배지 =====
   const remaining = todos.filter((t) => !t.done).length
   const todoBadge = todos.length ? (remaining ? remaining + '개 남음' : '모두 완료 🎉') : null
+  // 남은 할 일을 분류별로 집계 → 홈 카드에 색 점 + 개수로 표시
+  const todoCatCounts = {}
+  todos.filter((t) => !t.done).forEach((t) => {
+    const k = categoryOf(t.category).key
+    todoCatCounts[k] = (todoCatCounts[k] || 0) + 1
+  })
+  const todoDots = TODO_CATEGORIES.filter((c) => todoCatCounts[c.key]).map((c) => ({ color: c.color, name: c.name, count: todoCatCounts[c.key] }))
   const docCount = Array.isArray(docs) ? docs.length : 4
   const boardCount = Array.isArray(board) ? board.length : 2
   const maintCount = Array.isArray(maint) ? maint.length : 0
   const gitlabReady = !!gitlabUrl
   const sysCount = Array.isArray(syslinks) ? syslinks.length : 3
+  const secretVisible = (Array.isArray(secretNotes) ? secretNotes : []).filter((n) => n.author === userName || (n.recipients || []).includes(userName)).length
   const snackToday = (() => {
     const k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()
     return snackSession && snackSession.date === k ? snackSession : null
@@ -246,16 +275,17 @@ export default function Home() {
 
   const openWakbu = () => window.open('http://localhost:3300/3d', '_blank')
   const CARDS = [
-    { key: 'todo', go: () => navigate('/todo'), icon: '✅', grad: 'linear-gradient(135deg,#EFE9FF,#E2D7FF)', ink: '#7C5CFC', title: '나의 TODOLIST', desc: '나만 보는 할 일 목록', cta: '할 일 보기', hb: '#DED2FF', hs: 'rgba(124,92,252,.12)', badge: todoBadge && { text: todoBadge, bg: '#EFE9FF', ink: '#7C5CFC' } },
+    { key: 'todo', go: () => navigate('/todo'), icon: '✅', grad: 'linear-gradient(135deg,#EFE9FF,#E2D7FF)', ink: '#7C5CFC', title: '나의 TODOLIST', desc: '나만 보는 할 일 목록', cta: '할 일 보기', hb: '#DED2FF', hs: 'rgba(124,92,252,.12)', badge: todoBadge && { text: todoBadge, bg: '#EFE9FF', ink: '#7C5CFC' }, dots: todoDots },
     { key: 'meal', go: () => navigate('/meal'), icon: '🍚', grad: 'linear-gradient(135deg,#FFF1E6,#FFE3CB)', ink: '#E8823A', title: '오늘의 식단', desc: '경남신문 · 국민연금 식당 주간 식단', cta: '이번 주 식단 보기', hb: '#FFDDC2', hs: 'rgba(232,130,58,.1)' },
     { key: 'docs', go: () => navigate('/docs'), icon: '📄', grad: 'linear-gradient(135deg,#E8F0FF,#D7E4FF)', ink: '#4C6FFF', title: '이번 주 회의자료', desc: '주간회의 공유자료 모음', cta: '목록 보기', hb: '#CCDAFF', hs: 'rgba(76,111,255,.1)', badge: { text: docCount + '건', bg: '#EDF2FF', ink: '#4C6FFF' } },
     { key: 'board', go: () => navigate('/board'), icon: '💬', grad: 'linear-gradient(135deg,#E3F5F8,#CDEBF1)', ink: '#3AA6B9', title: '익명 게시판', desc: '이름 없이 자유롭게 한마디', cta: '게시판 가기', hb: '#BCE4EC', hs: 'rgba(58,166,185,.1)', badge: { text: boardCount + '개의 글', bg: '#E3F5F8', ink: '#3AA6B9' } },
     { key: 'maint', go: () => navigate('/maint'), icon: '📊', grad: 'linear-gradient(135deg,#E2F2E9,#CBE7D8)', ink: '#217346', title: '유지보수 내역', desc: '엑셀 파일을 올려서 한눈에 보기', cta: '내역 보기', hb: '#BBDCC9', hs: 'rgba(33,115,70,.12)', badge: maintCount ? { text: maintCount + '개 파일', bg: '#E2F2E9', ink: '#217346' } : null },
     { key: 'gitlab', go: () => navigate('/gitlab'), icon: '🦊', grad: 'linear-gradient(135deg,#FDEAE2,#FAD6C6)', ink: '#E2542C', title: 'GitLab 커밋 이력', desc: '프로젝트별 최근 커밋 보기', cta: '커밋 보러가기', hb: '#F5C8B8', hs: 'rgba(226,84,44,.12)', badge: gitlabReady ? { text: '연결됨', bg: '#FDEAE2', ink: '#E2542C' } : null },
     { key: 'snack', go: () => navigate('/snack'), icon: '🌙', grad: 'linear-gradient(135deg,#E8EAF8,#D6DAF2)', ink: '#5560A4', title: '야식 주문하기', desc: '오늘 야근엔 뭐 먹을까요', cta: '주문 접수하기', hb: '#C7CCEC', hs: 'rgba(85,96,164,.12)', badge: snackToday && { text: '🔔 ' + snackToday.store + ' 진행 중', bg: '#5560A4', ink: '#fff', blink: true, shadow: '0 4px 12px rgba(85,96,164,.35)' } },
-    { key: 'sysurl', go: () => navigate('/sysurl'), icon: '🔗', grad: 'linear-gradient(135deg,#FFF6DE,#FBEDC4)', ink: '#C99A2E', title: '시스템 접속URL', desc: '자주 쓰는 사내 시스템 모음', cta: '목록 보기', hb: '#F0DDAB', hs: 'rgba(201,154,46,.12)', badge: { text: sysCount + '개', bg: '#FFF6DE', ink: '#C99A2E' } },
+    { key: 'resources', go: () => navigate('/resources'), icon: '🗂️', grad: 'linear-gradient(135deg,#E3F5F8,#CDEBF1)', ink: '#1E9BAE', title: '자료실', desc: '시스템 URL · DB 정보 · 개발 도구', cta: '자료실 열기', hb: '#BCE4EC', hs: 'rgba(30,155,174,.12)', badge: { text: 'URL ' + sysCount, bg: '#E3F5F8', ink: '#1E9BAE' } },
     { key: 'random', go: () => navigate('/random'), icon: '🎲', grad: 'linear-gradient(135deg,#FFE3F0,#FFD0E3)', ink: '#E05B8B', title: '결정 도우미', desc: '룰렛 · 사다리 · 의사결정 투표', cta: '결정하러 가기', hb: '#FFCBDE', hs: 'rgba(224,91,139,.1)' },
     { key: 'claude', go: () => navigate('/claude'), icon: '🤖', grad: 'linear-gradient(135deg,#FBEAE3,#F6D8CB)', ink: '#D97757', title: 'Claude 사용량', desc: '내 토큰·비용 사용 현황', cta: '사용량 보기', hb: '#F3DBBE', hs: 'rgba(217,119,87,.12)', badge: { text: '데모', bg: '#FFF3E4', ink: '#B0762F' } },
+    { key: 'secret', go: () => navigate('/secret'), icon: '🔒', grad: 'linear-gradient(135deg,#E8EAF6,#D7DBF0)', ink: '#5C6BC0', title: '비밀 노트', desc: '선택한 팀원에게만 보이는 쪽지', cta: '비밀 노트 열기', hb: '#C7CCEC', hs: 'rgba(92,107,192,.12)', badge: secretVisible ? { text: secretVisible + '개', bg: '#E8EAF6', ink: '#5C6BC0' } : null },
     { key: 'wiki', go: () => notify('사내 위키 — 실제 서비스에서는 새 탭으로 연결돼요'), icon: '📚', grad: 'linear-gradient(135deg,#EFE9FF,#E2D7FF)', ink: '#7C5CFC', title: '사내 위키', desc: '프로젝트·업무 문서 아카이브', cta: 'wiki.company.com 열기', hb: '#DED2FF', hs: 'rgba(124,92,252,.1)', badge: { text: '외부 링크 ↗', bg: '#F1F3F7', ink: '#98A0B3' } },
     { key: 'meta', go: openWakbu, icon: '🌐', grad: 'linear-gradient(135deg,#E4F7F0,#CBEEDD)', ink: '#2FA36B', title: '사내 메타버스', desc: '가상 오피스 공간 입장', cta: 'localhost:3300/3d 입장', hb: '#BEE8D4', hs: 'rgba(47,163,107,.1)', badge: { text: '외부 링크 ↗', bg: '#F1F3F7', ink: '#98A0B3' } },
     { key: 'wakbu', go: openWakbu, icon: '🗺️', grad: 'linear-gradient(135deg,#DFF5F5,#C4ECEC)', ink: '#0F9D9F', title: '왁뿌MAP', desc: '메타버스 맵으로 바로 이동', cta: '맵 열기', hb: '#A9E0E1', hs: 'rgba(15,157,159,.12)', badge: { text: '외부 링크 ↗', bg: '#F1F3F7', ink: '#98A0B3' } },
@@ -426,6 +456,16 @@ export default function Home() {
               <div style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '-.01em' }}>{c.title}</div>
               <div style={{ fontSize: '12.5px', color: '#737E92' }}>{c.desc}</div>
             </div>
+            {c.dots && c.dots.length > 0 && (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {c.dots.map((dot) => (
+                  <span key={dot.name} title={dot.name + ' ' + dot.count + '개'} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 800, color: dot.color }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: dot.color, flexShrink: 0 }} />
+                    {dot.count}
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{ fontSize: '13px', fontWeight: 700, color: c.ink, display: 'flex', alignItems: 'center', gap: '5px', marginTop: 'auto' }}>{c.cta} <span>→</span></div>
           </HoverButton>
         ))}

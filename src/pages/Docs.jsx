@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { HoverButton } from '../components/ui'
+import Pager from '../components/Pager'
+import useAutoPage from '../hooks/useAutoPage'
 
 const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
 const TEAMS_CHAT_URL =
@@ -21,7 +23,9 @@ const TYPE_STYLE = {
 
 export default function Docs() {
   const navigate = useNavigate()
-  const [docs, setDocs] = useLocalStorage('sd1-portal-docs', DEFAULT_DOCS)
+  const [storedDocs, setDocs] = useLocalStorage('sd1-portal-docs', DEFAULT_DOCS)
+  const docs = Array.isArray(storedDocs) ? storedDocs : DEFAULT_DOCS
+  const { ref: listRef, pageItems, page, setPage, totalPages } = useAutoPage(docs, 74, { gap: 11, reserved: 80 })
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
   const [teamsHover, setTeamsHover] = useState(false)
@@ -121,8 +125,8 @@ export default function Docs() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
-        {docs.map((doc, i) => {
+      <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
+        {pageItems.map((doc, i) => {
           const ts = TYPE_STYLE[doc.type] || TYPE_STYLE['자료']
           return (
             <HoverButton
@@ -142,6 +146,8 @@ export default function Docs() {
           )
         })}
       </div>
+
+      <Pager page={page} totalPages={totalPages} onChange={setPage} accent="#4C6FFF" />
     </section>
   )
 }

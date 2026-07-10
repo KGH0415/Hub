@@ -5,6 +5,8 @@ import { useToast } from '../components/Toast'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { HoverButton } from '../components/ui'
 import DatePicker from '../components/DatePicker'
+import Pager from '../components/Pager'
+import useAutoPage from '../hooks/useAutoPage'
 
 const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
 const DEFAULT_TEXT =
@@ -38,7 +40,6 @@ export default function NoticeAdmin() {
   const [newStyle, setNewStyle] = useState('plain')
   const [newPriority, setNewPriority] = useState(1)
   const [drafts, setDrafts] = useState({})
-  const [page, setPage] = useState(0)
 
   const today = todayStr()
   const active = notices.filter((n) => statusOf(n, today) === '게시중')
@@ -66,6 +67,7 @@ export default function NoticeAdmin() {
     setNewEnd('')
     setNewStyle('plain')
     setNewPriority(1)
+    setPage(0)
   }
 
   const setDraft = (n, patch) =>
@@ -97,11 +99,7 @@ export default function NoticeAdmin() {
   }
   const removeRow = (n) => setNotices(notices.filter((q) => q.id !== n.id))
 
-  const PER = 4
-  const totalPages = Math.max(1, Math.ceil(notices.length / PER))
-  const curPage = Math.min(page, totalPages - 1)
-  const rows = notices.slice(curPage * PER, curPage * PER + PER)
-  const showPager = notices.length > PER
+  const { ref: listRef, pageItems, page, setPage, totalPages } = useAutoPage(notices, 120, { gap: 10, reserved: 80 })
 
   return (
     <section data-screen-label="공지 관리">
@@ -158,8 +156,8 @@ export default function NoticeAdmin() {
       </div>
 
       {/* 공지 목록 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {rows.map((n) => {
+      <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {pageItems.map((n) => {
           const st = statusOf(n, today)
           const view = drafts[n.id] || n
           const cur = view.styleType || n.styleType || 'plain'
@@ -200,13 +198,7 @@ export default function NoticeAdmin() {
         )}
       </div>
 
-      {showPager && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginTop: '18px' }}>
-          <HoverButton onClick={() => setPage(Math.max(0, curPage - 1))} style={{ fontFamily: 'inherit', width: '38px', height: '38px', border: '1px solid #EAEDF5', borderRadius: '12px', background: '#fff', color: curPage === 0 ? '#D5DAE6' : '#CE8C2C', fontSize: '17px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(35,43,58,.05)', transition: 'all .15s' }} hoverStyle={{ border: '1px solid #F0DDAB' }}>‹</HoverButton>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: '#737E92', minWidth: '44px', textAlign: 'center' }}>{curPage + 1} / {totalPages}</span>
-          <HoverButton onClick={() => setPage(Math.min(totalPages - 1, curPage + 1))} style={{ fontFamily: 'inherit', width: '38px', height: '38px', border: '1px solid #EAEDF5', borderRadius: '12px', background: '#fff', color: curPage >= totalPages - 1 ? '#D5DAE6' : '#CE8C2C', fontSize: '17px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(35,43,58,.05)', transition: 'all .15s' }} hoverStyle={{ border: '1px solid #F0DDAB' }}>›</HoverButton>
-        </div>
-      )}
+      <Pager page={page} totalPages={totalPages} onChange={setPage} accent="#CE8C2C" />
     </section>
   )
 }

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/Toast'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { HoverButton } from '../components/ui'
+import Pager from '../components/Pager'
+import useAutoPage from '../hooks/useAutoPage'
 
 const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
 
@@ -102,6 +104,8 @@ export default function Gitlab() {
     }
   })
 
+  const { ref: listRef, pageItems, page, setPage, totalPages } = useAutoPage(projectViews, 90, { gap: 13, reserved: 80 })
+
   return (
     <section data-screen-label="GitLab 커밋 이력">
       <HoverButton
@@ -153,8 +157,8 @@ export default function Gitlab() {
       </div>
 
       {/* 프로젝트 목록 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
-        {projectViews.map((p) => (
+      <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
+        {pageItems.map((p) => (
           <div key={p.path} style={{ background: '#fff', border: '1px solid #EAEDF5', borderRadius: '18px', padding: '18px 20px', boxShadow: cardShadow, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#FDEAE2', color: '#E2542C', display: 'grid', placeItems: 'center', fontSize: '17px', flexShrink: 0 }}>📁</div>
@@ -185,6 +189,8 @@ export default function Gitlab() {
           <div style={{ border: '2px dashed #DDE2EE', borderRadius: '20px', padding: '40px', textAlign: 'center', color: '#A6ADC0', fontSize: '14px', fontWeight: 600 }}>추적할 프로젝트를 위에서 추가해 주세요 (예: dev-team/mes-backend)</div>
         )}
       </div>
+
+      <Pager page={page} totalPages={totalPages} onChange={setPage} accent="#E2542C" />
     </section>
   )
 }

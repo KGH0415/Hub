@@ -15,9 +15,10 @@ import Todo from './pages/Todo'
 import Maintenance from './pages/Maintenance'
 import Gitlab from './pages/Gitlab'
 import Snack from './pages/Snack'
-import SysUrl from './pages/SysUrl'
 import Random from './pages/Random'
 import ClaudeUsage from './pages/ClaudeUsage'
+import SecretNotes from './pages/SecretNotes'
+import Resources from './pages/Resources'
 import './App.css'
 
 function Layout() {
@@ -40,9 +41,10 @@ function Layout() {
             <Route path="/maint" element={<Maintenance />} />
             <Route path="/gitlab" element={<Gitlab />} />
             <Route path="/snack" element={<Snack />} />
-            <Route path="/sysurl" element={<SysUrl />} />
+            <Route path="/resources" element={<Resources />} />
             <Route path="/random" element={<Random />} />
             <Route path="/claude" element={<ClaudeUsage />} />
+            <Route path="/secret" element={<SecretNotes />} />
             <Route path="*" element={<div style={{ padding: '60px', textAlign: 'center', color: '#98A0B3' }}>페이지를 찾을 수 없습니다.</div>} />
           </Routes>
         </div>
