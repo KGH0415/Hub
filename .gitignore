@@ -16,6 +16,10 @@ dist-ssr
 _*.mjs
 _*.png
 
+# meal auto-updater work artifacts
+scripts/.meal-work/
+scripts/meal-update.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

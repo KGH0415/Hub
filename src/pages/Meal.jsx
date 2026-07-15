@@ -3,36 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/Toast'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { HoverButton, HoverDiv } from '../components/ui'
+import mealData from '../data/meal.json'
 
 const cardShadow = '0 1px 2px rgba(35,43,58,.04), 0 8px 24px rgba(35,43,58,.05)'
-const MEAL_SOURCE_URL =
-  'https://ctrcentral.sharepoint.com/:p:/r/sites/CTR-News/_layouts/15/doc2.aspx?sourcedoc=%7BA713FB0F-B068-4C75-9F9D-525827278974%7D&file=CTR%EB%B9%8C%EB%94%A9%20%EC%A3%BC%EA%B0%84%EC%8B%9D%EB%8B%A8%ED%91%9C.pptx&action=edit&mobileredirect=true&web=1'
-const WEEK_RANGE_LABEL = '2026년 7월 6일 (월) ~ 7월 10일 (금)'
+// 식단 데이터는 src/data/meal.json 에서 옵니다.
+// 이 파일은 매주 월요일 원본 PPTX(주간 식단표)를 읽어 자동으로 갱신됩니다.
+const MEAL_SOURCE_URL = mealData.sourceUrl
+const WEEK_RANGE_LABEL = mealData.weekRangeLabel
 const ACCENTS = ['#E8823A', '#4C6FFF', '#2FA36B', '#7C5CFC', '#E05B8B']
-export const CAFETERIAS = [
-  {
-    name: '경남신문 식당',
-    desc: '2층 엘리시아뷔페',
-    week: [
-      { dow: '월', date: '7/6', main: '제육두루치기', side: '흑미밥 · 소고기무우국 · 순두부계란찜 · 상추쌈/막장 · 불맛해물우동볶음 · 배추김치·숭늉' },
-      { dow: '화', date: '7/7', main: '순살닭고추장구이/파채', side: '흑미밥 · 콩나물김칫국 · 국물떡볶이 · 순대·물만두튀김 · 미트볼크림소스조림 · 배추김치·숭늉' },
-      { dow: '수', date: '7/8', main: '김치피자치즈탕수육', side: '소고기톳밥 · 얼큰닭칼국수 · 고추잡채/꽃빵 · 양배추치커리샐러드 · 배추김치·숭늉' },
-      { dow: '목', date: '7/9', main: '매콤닭도리탕', side: '흑미밥 · 어묵탕 · 불고기고로케 · 들기름메밀국수무침 · 열무겉절이 · 배추김치·숭늉' },
-      { dow: '금', date: '7/10', main: '삼계솥밥/양념장', side: '유부된장국 · 불맛바삭불고기 · 굴소스버섯두부구이 · 콩나물무침 · 배추김치·숭늉' },
-    ],
-  },
-  {
-    name: '국민연금 식당',
-    desc: '중식 11:30~ · 한국전력 2층 구내식당 메뉴 동일',
-    week: [
-      { dow: '월', date: '7/6', main: '순대닭갈비볶음', side: '백미밥 · 사골우거지국 · 감자야채볶음 · 아삭고추쌈장무침 · 배추김치' },
-      { dow: '화', date: '7/7', main: '버섯불고기', side: '흑미밥 · 우렁된장찌개 · 카레우동볶음 · 양배추·다시마쌈&장 · 배추김치' },
-      { dow: '수', date: '7/8', main: '훈제오리볶음밥 (특식)', side: '냉콩나물국 · 오징어양념볶음 · 가지양념무침 · 찰빵도그&케찹 · 깍두기' },
-      { dow: '목', date: '7/9', main: '멘치까스&양송이소스', side: '흑미밥 · 바지락미역국 · 두부양념조림 · 노각양념무침 · 배추김치' },
-      { dow: '금', date: '7/10', main: '김치두루치기', side: '백미밥 · 시락국 · 단호박&어니언링튀김 · 도토리묵상추무침 · 배추김치' },
-    ],
-  },
-]
+export const CAFETERIAS = mealData.cafeterias
 
 function foodEmoji(main) {
   const rules = [
