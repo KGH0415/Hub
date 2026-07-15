@@ -58,7 +58,7 @@ export default function Sidebar() {
   return (
     <>
       <div style={{ width: '214px', flexShrink: 0 }} />
-      <nav style={{ width: '192px', position: 'fixed', left: '44px', top: '80px', bottom: '24px', background: 'rgba(255,255,255,.72)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.8)', borderRadius: '20px', padding: '12px', boxShadow: '0 1px 2px rgba(35,43,58,.04), 0 10px 28px rgba(35,43,58,.08)', display: 'flex', flexDirection: 'column', gap: '3px', zIndex: 40, overflowY: 'auto' }}>
+      <nav className="sidebar-nav" style={{ width: '192px', position: 'fixed', left: '44px', top: '80px', bottom: '24px', background: 'rgba(255,255,255,.72)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.8)', borderRadius: '20px', padding: '12px', boxShadow: '0 1px 2px rgba(35,43,58,.04), 0 10px 28px rgba(35,43,58,.08)', display: 'flex', flexDirection: 'column', gap: '1px', zIndex: 40, overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {ordered.map((n) => {
           const active = !n.ext && n.route === pathname
           return (
@@ -69,7 +69,7 @@ export default function Sidebar() {
               onDragStart={() => { dragNav.current = n.key }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); onNavDrop(n.key) }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'inherit', fontSize: '13.5px', fontWeight: active ? 800 : 600, color: active ? n.color : '#5A6478', background: active ? n.bg : 'transparent', border: 'none', borderRadius: '13px', padding: '10px 12px', cursor: 'pointer', textAlign: 'left', transition: 'all .15s ease', width: '100%' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'inherit', fontSize: '13.5px', fontWeight: active ? 800 : 600, color: active ? n.color : '#5A6478', background: active ? n.bg : 'transparent', border: 'none', borderRadius: '13px', padding: '7px 12px', cursor: 'pointer', textAlign: 'left', transition: 'all .15s ease', width: '100%' }}
               hoverStyle={{ background: active ? n.bg : '#F1F3F9' }}
             >
               <span style={{ fontSize: '17px', width: '22px', textAlign: 'center', flexShrink: 0 }}>{n.icon}</span>

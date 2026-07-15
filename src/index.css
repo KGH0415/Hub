@@ -119,6 +119,9 @@ html[data-dark] textarea::placeholder { color: #7a849e !important; }
 input::placeholder,
 textarea::placeholder { color: #cbd1de; font-weight: 400; }
 
+/* 좌측 메뉴 스크롤바 숨김 (스크롤 기능은 유지) */
+.sidebar-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
