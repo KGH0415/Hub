@@ -13,7 +13,8 @@
 # ============================================================
 [CmdletBinding()]
 param(
-  [string]$PptxPath  # optional override; auto-detected if omitted
+  [string]$PptxPath,   # optional override; auto-detected if omitted
+  [switch]$SkipPush    # when set, commit locally is also skipped; only meal.json + build are done
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,18 +40,32 @@ try {
   Log '=== meal update run started ==='
 
   # ---- 1. Locate the source .pptx --------------------------------
+  # Source now lives in the SharePoint library "CTR NEWS / weekly menu", synced
+  # locally as a OneDrive shortcut under "%USERPROFILE%\OneDrive - CTR\...".
+  # The library folder name contains Korean + an emoji, so we do NOT hard-code it
+  # (this file is ASCII-only). Instead we scan the immediate subfolders of the
+  # OneDrive - CTR root for the one holding the "building" weekly-menu .pptx.
+  # "building" = the file whose name contains U+BE4C U+B529 (Korean "building").
+  $needle = [string]([char]0xBE4C + [char]0xB529)
   if (-not $PptxPath) {
-    $ctrRoot = Join-Path $env:USERPROFILE 'CTR'
-    if (-not (Test-Path $ctrRoot)) { throw "CTR sync folder not found: $ctrRoot" }
-    # "CTR building" = the file whose name contains U+BE4C U+B529 ("building" in Korean)
-    $needle = [string]([char]0xBE4C + [char]0xB529)
-    $hit = Get-ChildItem -Path $ctrRoot -Recurse -Filter '*.pptx' -File |
+    $odRoot = Join-Path $env:USERPROFILE 'OneDrive - CTR'
+    if (-not (Test-Path -LiteralPath $odRoot)) { throw "OneDrive - CTR folder not found: $odRoot" }
+    # Only descend one level per subfolder (the .pptx sit at the library root);
+    # -Recurse would refuse to follow the OneDrive reparse-point link anyway.
+    $hit = Get-ChildItem -LiteralPath $odRoot -Directory -Force -ErrorAction SilentlyContinue |
+           ForEach-Object {
+             Get-ChildItem -LiteralPath $_.FullName -Filter '*.pptx' -File -ErrorAction SilentlyContinue
+           } |
            Where-Object { $_.Name -like "*$needle*" } |
            Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $hit) { throw "CTR building weekly-menu .pptx not found under $ctrRoot" }
+    if (-not $hit) {
+      throw ("building weekly-menu .pptx not found under $odRoot. " +
+             "Is the CTR NEWS weekly-menu library still added as a OneDrive shortcut?")
+    }
     $PptxPath = $hit.FullName
   }
-  Log "source pptx: $PptxPath ($([math]::Round((Get-Item $PptxPath).Length/1KB)) KB, modified $((Get-Item $PptxPath).LastWriteTime))"
+  if (-not (Test-Path -LiteralPath $PptxPath)) { throw "source pptx not found: $PptxPath" }
+  Log "source pptx: $PptxPath ($([math]::Round((Get-Item -LiteralPath $PptxPath).Length/1KB)) KB, modified $((Get-Item -LiteralPath $PptxPath).LastWriteTime))"
 
   # ---- 2. Fresh work dir + unzip ---------------------------------
   # Use a unique per-run subdir so we never have to delete a dir whose image
@@ -62,7 +77,7 @@ try {
   $WorkDir = Join-Path $WorkBase ('run-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
   New-Item -ItemType Directory -Path $WorkDir | Out-Null
   $zipCopy = Join-Path $WorkDir 'src.zip'
-  Copy-Item $PptxPath $zipCopy
+  Copy-Item -LiteralPath $PptxPath -Destination $zipCopy
   $extract = Join-Path $WorkDir 'extract'
   Add-Type -AssemblyName System.IO.Compression.FileSystem
   [System.IO.Compression.ZipFile]::ExtractToDirectory($zipCopy, $extract)
@@ -177,6 +192,54 @@ Follow the instructions below exactly.
   $buildLog = (Get-Content $buildOut -Raw -Encoding UTF8 -ErrorAction SilentlyContinue)
   Log ("build exit=$buildExit output (tail):`n" + (("$buildLog".Trim() -split "`n") | Select-Object -Last 6 | Out-String).Trim())
   if ($buildExit -ne 0) { throw "npm run build failed with code $buildExit" }
+
+  # ---- 7. Commit the refreshed data and (optionally) push --------
+  if ($SkipPush) {
+    Log 'SkipPush set: meal.json left uncommitted (no git add/commit/push).'
+  } else {
+    $git = (Get-Command git.exe -ErrorAction SilentlyContinue).Source
+    if (-not $git) { $git = (Get-Command git -ErrorAction SilentlyContinue).Source }
+    if (-not $git) { throw 'git not found on PATH' }
+
+    Push-Location $RepoRoot
+    try {
+      $ErrorActionPreference = 'Continue'
+
+      $branch = (& $git rev-parse --abbrev-ref HEAD).Trim()
+      if ($branch -ne 'main') { throw "expected branch 'main' but repo is on '$branch'; aborting push" }
+
+      # Stage only the data file; dist/log/work-artifacts are git-ignored.
+      & $git add -- 'src/data/meal.json' | Out-Null
+      & $git diff --cached --quiet
+      $hasChange = ($LASTEXITCODE -ne 0)
+
+      if (-not $hasChange) {
+        Log 'meal.json unchanged since last commit; nothing to push.'
+      } else {
+        # Korean week label lives in the data, not in this ASCII script; write the
+        # commit message to a UTF-8 (no BOM) file and use `git commit -F` so the
+        # non-ASCII text survives Windows PowerShell 5.1 argument mangling.
+        $msgFile = Join-Path $WorkDir 'commit-msg.txt'
+        $msg = "weekly meal auto-update: $($json.weekRangeLabel)"
+        [System.IO.File]::WriteAllText($msgFile, $msg + "`n", (New-Object System.Text.UTF8Encoding $false))
+
+        & $git commit -F $msgFile 1> (Join-Path $WorkDir 'git-commit.txt') 2>&1
+        $commitExit = $LASTEXITCODE
+        if ($commitExit -ne 0) { throw "git commit failed with code $commitExit" }
+
+        & $git push origin main 1> (Join-Path $WorkDir 'git-push.txt') 2>&1
+        $pushExit = $LASTEXITCODE
+        $pushLog = (Get-Content (Join-Path $WorkDir 'git-push.txt') -Raw -Encoding UTF8 -ErrorAction SilentlyContinue)
+        Log ("git push exit=$pushExit output:`n" + "$pushLog".Trim())
+        if ($pushExit -ne 0) { throw "git push failed with code $pushExit" }
+        Log 'pushed to origin/main; GitHub Actions will build & deploy.'
+      }
+
+      $ErrorActionPreference = 'Stop'
+    } finally {
+      Pop-Location
+    }
+  }
 
   Log '=== meal update run finished ==='
 }
